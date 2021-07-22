@@ -28,5 +28,5 @@ fi
 
 
 
-[[ -z $DISPLAY && $XDG_VTNR -eq 1 ]] && sudo node /home/pi/IntriGen2/webserver.js &
+[[ -z $DISPLAY && $XDG_VTNR -eq 1 ]] && sudo node /home/pi/IntriCebela/webserver.js &
 [[ -z $DISPLAY && $XDG_VTNR -eq 1 ]] && startx -- -nocursor
