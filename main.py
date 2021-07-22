@@ -86,7 +86,7 @@ class State:
 
     @staticmethod
     def get_state_from_button(button):
-        for key, value in State.BUTTONS:
+        for key, value in State.BUTTONS.items():
             if value == button:
                 return key
         return None
@@ -95,15 +95,15 @@ class I2C:
 
     def __init__(self):
         self.bus = smbus.SMBus(1)
-        self.address = 8
+        self.arduino_address = 8
 
     def get_pressed_button(self):
         try:
-            self.bus.write_byte(address, 1)
-            data = bus.read_i2c_block_data(address, 0, 1)
+            self.bus.write_byte(self.arduino_address, 1)
+            data = self.bus.read_i2c_block_data(self.arduino_address, 0, 1)
 
             char = data[0]
-            if char == "0":
+            if char == ord('0'):
                 buttonInput = None
             elif ord('A') <= char <= ord('L'):
                 buttonInput = chr(char)
@@ -129,7 +129,7 @@ class BackgroundImage:
 
 class Camera:
     def __init__(self, time=10):
-        Popen(["raspivid", "-ifx", "colourswap", "-t", time*1000])
+        Popen(["raspivid", "-ifx", "colourswap", "-t", str(time*1000)])
 
 class Video:
     def __init__(self, video_url):
@@ -177,12 +177,22 @@ class StateMachine:
                 self.on_state_timeout()
 
         else:
-            if self.state == State.IDLE:
+            if self.current_state == State.IDLE:
                 self.try_to_enter_new_state()
 
 
 def main():
-    print("Hello")
+	state_machine = StateMachine()
+
+	last_update = time.time()
+	while True:
+		now = time.time()
+		delta_time = now - last_update
+
+		last_update = now
+		state_machine.update(delta_time)
+		
+		time.sleep(0.03)
 
 if __name__ == "__main__":
     main()
