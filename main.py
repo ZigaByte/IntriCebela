@@ -96,6 +96,7 @@ class I2C:
     def __init__(self):
         self.bus = smbus.SMBus(1)
         self.arduino_address = 8
+        self.magnet_address = 0x36
 
     def get_pressed_button(self):
         try:
@@ -112,15 +113,45 @@ class I2C:
 
             print("Read Input: ", char)
             return buttonInput
-        
+
         except IOError as e:
-            print("Error reading from i2c", e)
+            print("Error reading from i2c arduino", e)
             return None
         except ValueError as e:
-            print("Invalid value:", char, ",", e)
+            print("Invalid value from arduino:", char, ",", e)
             return None
         except Exception as e:
-            print("Other error", e)
+            print("Other error from arduino", e)
+            return None
+
+    def get_magnet_position(self):
+        try:
+	    data = self.bus.read_i2c_block_data(self.magnet_address, 0, 28)
+
+            raw_angle = (data[0x0c] << 8) + data[0x0d]
+	    angle = raw_angle * 0.0878
+	    status = (data[0x0b] & 0x20) > 0
+	    too_low = (data[0x0b] & 0x10) > 0
+	    too_high = (data[0x0b] & 0x08) > 0
+
+	    print("Main Motor Angle", angle, "status", status, " too low", too_low, "High", too_high)
+
+            if not status:
+	        if too_low:
+	            raise ValueError("Magnet signal too low")
+                elif too_high:
+                    raise ValueError("Magnet signal too high")
+                else:
+                    raise ValueError("No status")
+	    return raw_angle
+        except IOError as e:
+            print("Error reading from i2c magnet", e)
+            return None
+        except ValueError as e:
+            print("Invalid value from manget:", e)
+            return None
+        except Exception as e:
+            print("Other error from magnet", e)
             return None
 
 class BackgroundImage:
@@ -171,6 +202,8 @@ class StateMachine:
                 self.on_enter_state(button)
 
     def update(self, delta_time):
+	print(self.i2c.get_magnet_position())
+
         if self.current_timeout > 0:
             self.current_timeout -= delta_time
             if self.current_timeout <= 0:
@@ -196,3 +229,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
